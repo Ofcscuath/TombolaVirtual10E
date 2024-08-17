@@ -204,6 +204,8 @@
         let adminMode = false;
         const adminPassword = "Admin_Adaya123.Araúz"; // Contraseña para el administrador
 
+        document.addEventListener('DOMContentLoaded', updateNameList);
+
         function addName() {
             const nameInput = document.getElementById('nameInput');
             const paymentInput = document.getElementById('paymentInput');
@@ -226,6 +228,10 @@
             }
 
             names.push({ name, paid: adminMode ? payment === 'sí' : false });
+
+            // Guardar el array de nombres en localStorage
+            localStorage.setItem('names', JSON.stringify(names));
+
             updateNameList();
             nameInput.value = '';
             paymentInput.value = '';
@@ -234,6 +240,13 @@
         function updateNameList() {
             const nameList = document.getElementById('nameList');
             nameList.innerHTML = '';
+
+            // Recuperar los nombres desde localStorage si están disponibles
+            const storedNames = JSON.parse(localStorage.getItem('names'));
+            if (storedNames) {
+                names = storedNames;
+            }
+
             names.forEach((entry, index) => {
                 const li = document.createElement('li');
                 li.textContent = entry.name;
@@ -263,34 +276,19 @@
             const index = document.getElementById('adminOptions').dataset.index;
             if (index !== undefined) {
                 names[index].paid = paid;
+
+                // Guardar la lista actualizada en localStorage
+                localStorage.setItem('names', JSON.stringify(names));
+
                 updateNameList();
-                document.getElementById('adminOptions').style.display = 'none';
+                hidePaymentOptions();
             }
         }
 
-        function enableAdminMode() {
-            document.getElementById('adminContainer').style.display = 'block';
-            document.getElementById('paymentInput').style.display = 'block';
-            adminMode = true;
-            alert("Modo Admin activado. Ahora puedes agregar más nombres y gestionar pagos.");
-        }
-
-        function disableAdminMode() {
-            document.getElementById('adminContainer').style.display = 'none';
-            document.getElementById('paymentInput').style.display = 'none';
-            adminMode = false;
-            alert("Modo Admin desactivado. Solo puedes agregar hasta 5 nombres.");
-        }
-
-        function authenticateAdmin() {
-            const passwordInput = document.getElementById('adminPassword').value;
-            if (passwordInput === adminPassword) {
-                document.getElementById('drawButton').style.display = 'block';
-                document.getElementById('updateButton').style.display = 'block';
-                document.getElementById('adminOptions').style.display = 'none'; // Oculta las opciones si están visibles
-                alert("Inicio de sesión exitoso. Ahora puedes sacar un ganador y agregar más nombres.");
-            } else {
-                alert("Contraseña incorrecta. No tienes permiso para sacar un ganador.");
+        function hidePaymentOptions() {
+            const adminOption = document.getElementById('adminOptions');
+            if (adminOption) {
+                adminOption.style.display = 'none';
             }
         }
 
@@ -300,35 +298,54 @@
                 return;
             }
 
-            const winnerElement = document.getElementById('winner');
             const randomIndex = Math.floor(Math.random() * names.length);
             const winner = names[randomIndex].name;
+            document.getElementById('winner').textContent = winner;
 
-            // Animación de selección de ganador
-            let animationIndex = 0;
-            const interval = setInterval(() => {
-                const randomAnimationIndex = Math.floor(Math.random() * names.length);
-                winnerElement.textContent = names[randomAnimationIndex].name;
-                animationIndex++;
-                if (animationIndex >= 30) { // Cambia de nombre 30 veces
-                    clearInterval(interval);
-                    winnerElement.textContent = `¡El ganador es: ${winner}!`;
-                }
-            }, 100);
+            // Guardar el ganador en localStorage (opcional)
+            localStorage.setItem('winner', winner);
+        }
+
+        function authenticateAdmin() {
+            const inputPassword = document.getElementById('adminPassword').value;
+            if (inputPassword === adminPassword) {
+                adminMode = true;
+                document.getElementById('paymentInput').style.display = 'block';
+                document.getElementById('drawButton').style.display = 'block';
+                document.getElementById('adminPassword').value = ''; // Clear input field
+                alert("Autenticación exitosa.");
+            } else {
+                alert("Contraseña incorrecta.");
+            }
+        }
+
+        function enableAdminMode() {
+            document.getElementById('adminContainer').style.display = 'block';
+        }
+
+        function disableAdminMode() {
+            adminMode = false;
+            document.getElementById('paymentInput').style.display = 'none';
+            document.getElementById('drawButton').style.display = 'none';
+            document.getElementById('adminContainer').style.display = 'none';
         }
 
         function showUpdateDialog() {
-            document.getElementById('confirmDialog').style.display = 'block';
+            const confirmDialog = document.getElementById('confirmDialog');
+            confirmDialog.style.display = 'block';
         }
 
         function closeUpdateDialog() {
-            document.getElementById('confirmDialog').style.display = 'none';
+            const confirmDialog = document.getElementById('confirmDialog');
+            confirmDialog.style.display = 'none';
         }
 
         function updateList() {
             names = [];
+            localStorage.removeItem('names');
             updateNameList();
-            document.getElementById('confirmDialog').style.display = 'none';
+            closeUpdateDialog();
+            alert("Lista actualizada.");
         }
     </script>
 </body>
