@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tómbola Virtual</title>
+    <title>Tómbola Virtual con Firebase</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,7 +22,6 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 90%;
             max-width: 600px;
-            position: relative;
         }
         input {
             width: calc(100% - 22px);
@@ -55,69 +54,6 @@
             margin-bottom: 10px;
             border-radius: 4px;
             cursor: pointer;
-            position: relative;
-        }
-        .paid {
-            color: green;
-        }
-        .not-paid {
-            color: red;
-        }
-        .admin-option {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-        .admin-option button {
-            display: block;
-            width: 100%;
-            margin-bottom: 5px;
-            padding: 5px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .admin-option .paid-button {
-            background-color: green;
-            color: white;
-        }
-        .admin-option .not-paid-button {
-            background-color: red;
-            color: white;
-        }
-        .admin-option button:hover {
-            opacity: 0.8;
-        }
-        .admin-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-        }
-        .admin-controls button {
-            width: auto;
-            padding: 5px 10px;
-            margin: 5px 0;
-            font-size: 12px;
-            background-color: #007bff;
-        }
-        .admin-controls button:hover {
-            background-color: #0056b3;
-        }
-        .admin-container {
-            position: relative;
-        }
-        #adminContainer {
-            display: none;
-        }
-        #drawButton {
-            display: none;
-            background-color: #ffc107;
-            margin-top: 20px;
         }
         .credits {
             margin-top: 20px;
@@ -199,24 +135,32 @@
         <button class="reject-button" onclick="closeUpdateDialog()">Cancelar</button>
     </div>
 
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCw4UaU2rGJ0xKa_VOWPaCdYtEAWks00Wg",
+            authDomain: "tombola-virtual-b468f.firebaseapp.com",
+            projectId: "tombola-virtual-b468f",
+            storageBucket: "tombola-virtual-b468f.appspot.com",
+            messagingSenderId: "910212105790",
+            appId: "1:910212105790:web:a8ecb8fa66632f2b75f36f",
+            measurementId: "G-TGX002B4JF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script>
+
     <script>
         let names = [];
         let adminMode = false;
         const adminPassword = "Admin_Adaya123.Araúz"; // Contraseña para el administrador
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Cargar la lista de nombres almacenada en localStorage
-            const storedNames = JSON.parse(localStorage.getItem('names'));
-            if (storedNames) {
-                names = storedNames;
-                updateNameList(); // Actualizar la lista en la UI
-            }
-
-            const storedWinner = localStorage.getItem('winner');
-            if (storedWinner) {
-                document.getElementById('winner').textContent = storedWinner;
-            }
-        });
 
         function addName() {
             const nameInput = document.getElementById('nameInput');
@@ -240,10 +184,6 @@
             }
 
             names.push({ name, paid: adminMode ? payment === 'sí' : false });
-
-            // Guardar el array de nombres en localStorage
-            localStorage.setItem('names', JSON.stringify(names));
-
             updateNameList();
             nameInput.value = '';
             paymentInput.value = '';
@@ -252,7 +192,6 @@
         function updateNameList() {
             const nameList = document.getElementById('nameList');
             nameList.innerHTML = '';
-
             names.forEach((entry, index) => {
                 const li = document.createElement('li');
                 li.textContent = entry.name;
@@ -264,40 +203,52 @@
 
         function showPaymentOptions(index) {
             if (!adminMode) return;
-
+            
             const adminOption = document.getElementById('adminOptions');
-            adminOption.style.display = 'block';
+            const li = document.querySelectorAll('li')[index];
 
-            // Almacenar el índice del nombre seleccionado para actualizarlo más tarde
-            adminOption.dataset.selectedIndex = index;
+            if (adminOption) {
+                adminOption.style.top = `${li.offsetTop + li.offsetHeight}px`;
+                adminOption.style.left = `${li.offsetLeft}px`;
+                adminOption.style.display = 'block';
 
-            // Posicionar el menú de opciones cerca del nombre seleccionado
-            const liElements = document.querySelectorAll('#nameList li');
-            const selectedElement = liElements[index];
-            const rect = selectedElement.getBoundingClientRect();
-            adminOption.style.top = `${rect.bottom}px`;
-            adminOption.style.left = `${rect.left}px`;
-        }
-
-        function updatePaymentStatus(paid) {
-            const adminOption = document.getElementById('adminOptions');
-            const index = parseInt(adminOption.dataset.selectedIndex, 10);
-
-            if (index >= 0 && index < names.length) {
-                names[index].paid = paid;
-
-                // Guardar la lista actualizada en localStorage
-                localStorage.setItem('names', JSON.stringify(names));
-
-                updateNameList();
-                hidePaymentOptions();
+                // Store the index of the selected item in adminOptions
+                adminOption.dataset.index = index;
             }
         }
 
-        function hidePaymentOptions() {
-            const adminOption = document.getElementById('adminOptions');
-            if (adminOption) {
-                adminOption.style.display = 'none';
+        function updatePaymentStatus(paid) {
+            const index = document.getElementById('adminOptions').dataset.index;
+            if (index !== undefined) {
+                names[index].paid = paid;
+                updateNameList();
+                document.getElementById('adminOptions').style.display = 'none';
+            }
+        }
+
+        function enableAdminMode() {
+            document.getElementById('adminContainer').style.display = 'block';
+            document.getElementById('paymentInput').style.display = 'block';
+            adminMode = true;
+            alert("Modo Admin activado. Ahora puedes agregar más nombres y gestionar pagos.");
+        }
+
+        function disableAdminMode() {
+            document.getElementById('adminContainer').style.display = 'none';
+            document.getElementById('paymentInput').style.display = 'none';
+            adminMode = false;
+            alert("Modo Admin desactivado. Solo puedes agregar hasta 5 nombres.");
+        }
+
+        function authenticateAdmin() {
+            const passwordInput = document.getElementById('adminPassword').value;
+            if (passwordInput === adminPassword) {
+                document.getElementById('drawButton').style.display = 'block';
+                document.getElementById('updateButton').style.display = 'block';
+                document.getElementById('adminOptions').style.display = 'none'; // Oculta las opciones si están visibles
+                alert("Inicio de sesión exitoso. Ahora puedes sacar un ganador y agregar más nombres.");
+            } else {
+                alert("Contraseña incorrecta. No tienes permiso para sacar un ganador.");
             }
         }
 
@@ -307,78 +258,36 @@
                 return;
             }
 
+            const winnerElement = document.getElementById('winner');
             const randomIndex = Math.floor(Math.random() * names.length);
             const winner = names[randomIndex].name;
-            document.getElementById('winner').textContent = winner;
 
-            // Guardar el ganador en localStorage (opcional)
-            localStorage.setItem('winner', winner);
-        }
-
-        function authenticateAdmin() {
-            const inputPassword = document.getElementById('adminPassword').value;
-            if (inputPassword === adminPassword) {
-                adminMode = true;
-                document.getElementById('paymentInput').style.display = 'block';
-                document.getElementById('drawButton').style.display = 'block';
-                document.getElementById('adminPassword').value = ''; // Limpiar el campo de entrada
-                alert("Autenticación exitosa.");
-            } else {
-                alert("Contraseña incorrecta.");
-            }
-        }
-
-        function enableAdminMode() {
-            document.getElementById('adminContainer').style.display = 'block';
-        }
-
-        function disableAdminMode() {
-            adminMode = false;
-            document.getElementById('paymentInput').style.display = 'none';
-            document.getElementById('drawButton').style.display = 'none';
-            document.getElementById('adminContainer').style.display = 'none';
+            // Animación de selección de ganador
+            let animationIndex = 0;
+            const interval = setInterval(() => {
+                const randomAnimationIndex = Math.floor(Math.random() * names.length);
+                winnerElement.textContent = names[randomAnimationIndex].name;
+                animationIndex++;
+                if (animationIndex >= 30) { // Cambia de nombre 30 veces
+                    clearInterval(interval);
+                    winnerElement.textContent = `¡El ganador es: ${winner}!`;
+                }
+            }, 100);
         }
 
         function showUpdateDialog() {
-            const confirmDialog = document.getElementById('confirmDialog');
-            confirmDialog.style.display = 'block';
+            document.getElementById('confirmDialog').style.display = 'block';
         }
 
         function closeUpdateDialog() {
-            const confirmDialog = document.getElementById('confirmDialog');
-            confirmDialog.style.display = 'none';
+            document.getElementById('confirmDialog').style.display = 'none';
         }
 
         function updateList() {
             names = [];
-            localStorage.removeItem('names');
             updateNameList();
-            closeUpdateDialog();
-            alert("Lista actualizada.");
+            document.getElementById('confirmDialog').style.display = 'none';
         }
-    <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyCw4UaU2rGJ0xKa_VOWPaCdYtEAWks00Wg",
-    authDomain: "tombola-virtual-b468f.firebaseapp.com",
-    projectId: "tombola-virtual-b468f",
-    storageBucket: "tombola-virtual-b468f.appspot.com",
-    messagingSenderId: "910212105790",
-    appId: "1:910212105790:web:a8ecb8fa66632f2b75f36f",
-    measurementId: "G-TGX002B4JF"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-
-</script>
+    </script>
 </body>
 </html>
