@@ -204,7 +204,19 @@
         let adminMode = false;
         const adminPassword = "Admin_Adaya123.Araúz"; // Contraseña para el administrador
 
-        document.addEventListener('DOMContentLoaded', updateNameList);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar la lista de nombres almacenada en localStorage
+            const storedNames = JSON.parse(localStorage.getItem('names'));
+            if (storedNames) {
+                names = storedNames;
+                updateNameList(); // Actualizar la lista en la UI
+            }
+
+            const storedWinner = localStorage.getItem('winner');
+            if (storedWinner) {
+                document.getElementById('winner').textContent = storedWinner;
+            }
+        });
 
         function addName() {
             const nameInput = document.getElementById('nameInput');
@@ -241,12 +253,6 @@
             const nameList = document.getElementById('nameList');
             nameList.innerHTML = '';
 
-            // Recuperar los nombres desde localStorage si están disponibles
-            const storedNames = JSON.parse(localStorage.getItem('names'));
-            if (storedNames) {
-                names = storedNames;
-            }
-
             names.forEach((entry, index) => {
                 const li = document.createElement('li');
                 li.textContent = entry.name;
@@ -258,23 +264,26 @@
 
         function showPaymentOptions(index) {
             if (!adminMode) return;
-            
+
             const adminOption = document.getElementById('adminOptions');
-            const li = document.querySelectorAll('li')[index];
+            adminOption.style.display = 'block';
 
-            if (adminOption) {
-                adminOption.style.top = `${li.offsetTop + li.offsetHeight}px`;
-                adminOption.style.left = `${li.offsetLeft}px`;
-                adminOption.style.display = 'block';
+            // Almacenar el índice del nombre seleccionado para actualizarlo más tarde
+            adminOption.dataset.selectedIndex = index;
 
-                // Store the index of the selected item in adminOptions
-                adminOption.dataset.index = index;
-            }
+            // Posicionar el menú de opciones cerca del nombre seleccionado
+            const liElements = document.querySelectorAll('#nameList li');
+            const selectedElement = liElements[index];
+            const rect = selectedElement.getBoundingClientRect();
+            adminOption.style.top = `${rect.bottom}px`;
+            adminOption.style.left = `${rect.left}px`;
         }
 
         function updatePaymentStatus(paid) {
-            const index = document.getElementById('adminOptions').dataset.index;
-            if (index !== undefined) {
+            const adminOption = document.getElementById('adminOptions');
+            const index = parseInt(adminOption.dataset.selectedIndex, 10);
+
+            if (index >= 0 && index < names.length) {
                 names[index].paid = paid;
 
                 // Guardar la lista actualizada en localStorage
@@ -312,7 +321,7 @@
                 adminMode = true;
                 document.getElementById('paymentInput').style.display = 'block';
                 document.getElementById('drawButton').style.display = 'block';
-                document.getElementById('adminPassword').value = ''; // Clear input field
+                document.getElementById('adminPassword').value = ''; // Limpiar el campo de entrada
                 alert("Autenticación exitosa.");
             } else {
                 alert("Contraseña incorrecta.");
